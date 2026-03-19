@@ -1,0 +1,15 @@
+{
+  "name": "cdc-consumer",
+  "version": "1.0.0",
+  "description": "CDC consumer for PostgreSQL to Meilisearch",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.3.1",
+    "meilisearch": "^0.37.0",
+    "pg": "^8.11.3",
+    "pg-logical-replication": "^2.1.0"
+  }
+}
