@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CDC Pipeline - Product Search</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Product Search</h1>
+      <div class="status">
+        <div data-testid="live-indicator" class="live-indicator">
+          <span class="dot"></span>
+          <span class="text">Live</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="search-section">
+      <div class="search-box">
+        <input
+          type="text"
+          data-testid="search-input"
+          id="searchInput"
+          placeholder="Search products..."
+          autocomplete="off"
+        >
+      </div>
+
+      <div data-testid="search-results" class="search-results" id="searchResults">
+        <div class="loading">Start typing to search...</div>
+      </div>
+    </div>
+
+    <div class="cdc-section">
+      <h2>Live Activity Feed</h2>
+      <div data-testid="cdc-feed" class="cdc-feed" id="cdcFeed">
+        <div class="feed-empty">Waiting for database events...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
