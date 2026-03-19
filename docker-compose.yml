@@ -1,0 +1,106 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: cdc_postgres
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_replication_slots=10
+      -c max_wal_senders=10
+    environment:
+      POSTGRES_USER: cdcuser
+      POSTGRES_PASSWORD: cdcpassword
+      POSTGRES_DB: cdcdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdcuser -d cdcdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: cdc_meilisearch
+    environment:
+      MEILI_MASTER_KEY: masterKey123
+      MEILI_NO_ANALYTICS: "true"
+    command: ["meilisearch", "--http-addr", "0.0.0.0:7700", "--db-path", "/meili_data"]
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://localhost:7700/health | grep 'available' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: cdc_api
+    environment:
+      POSTGRES_USER: cdcuser
+      POSTGRES_PASSWORD: cdcpassword
+      POSTGRES_DB: cdcdb
+      POSTGRES_HOST: cdc_postgres
+      POSTGRES_PORT: 5432
+      MEILI_HOST: http://cdc_meilisearch:7700
+      MEILI_KEY: masterKey123
+      API_PORT: 3000
+      API_HOST: http://cdc_api:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  cdc-consumer:
+    build:
+      context: ./cdc-consumer
+      dockerfile: Dockerfile
+    container_name: cdc_consumer
+    environment:
+      POSTGRES_USER: cdcuser
+      POSTGRES_PASSWORD: cdcpassword
+      POSTGRES_DB: cdcdb
+      POSTGRES_HOST: cdc_postgres
+      POSTGRES_PORT: 5432
+      MEILI_HOST: http://cdc_meilisearch:7700
+      MEILI_KEY: masterKey123
+      API_HOST: http://cdc_api:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    volumes:
+      - cdc_state:/app/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"process.exit(0)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  meili_data:
+  cdc_state:
